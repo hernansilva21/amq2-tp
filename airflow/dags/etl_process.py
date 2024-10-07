@@ -34,7 +34,7 @@ def process_etl_used_cars_data():
 
     @task.virtualenv(
         task_id="obtain_original_data",
-        requirements=["awswrangler==3.6.0"],
+        requirements=["awswrangler==3.6.0", "s3fs", "openpyxl"],
         system_site_packages=True
     )
     def get_data():
@@ -49,9 +49,8 @@ def process_etl_used_cars_data():
         used_cars = pd.read_excel(raw_data_path)
 
         data_path = "s3://data/raw/used_cars_data.csv"
-        dataframe = used_cars.data.original
 
-        wr.s3.to_csv(df=dataframe,
+        wr.s3.to_csv(df=used_cars,
                      path=data_path,
                      index=False)
 
@@ -112,7 +111,7 @@ def process_etl_used_cars_data():
                 # Something else has gone wrong.
                 raise e
 
-        target_col = Variable.get("precio")
+        target_col = Variable.get("target_col_used_cars")
         dataset_log = dataset.drop(columns=target_col)
         dataset_with_dummies_log = dataset_with_dummies.drop(columns=target_col)
 
@@ -179,7 +178,7 @@ def process_etl_used_cars_data():
                          path=path,
                          index=False)
 
-        data_original_path = "s3://data/raw/used_cars_dummies.csv"
+        data_original_path = "s3://data/raw/used_cars_data.csv"
         dataset = wr.s3.read_csv(data_original_path)
 
         test_size = Variable.get("test_size_used_cars")
@@ -188,7 +187,7 @@ def process_etl_used_cars_data():
         X = dataset.drop(columns=target_col)
         y = dataset[[target_col]]
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
 
         # Clean duplicates
         dataset.drop_duplicates(inplace=True, ignore_index=True)
