@@ -85,7 +85,7 @@ def process_etl_used_cars_data():
         # Drop NaN
         dataset.dropna(inplace=True, ignore_index=True)
         # Feature selection
-        dataset.drop(columns=['id_auto', 'publicacion', 'modelo', 'Combustible', 'Color', 'precio_nuevo'], inplace=True)
+        dataset.drop(columns=['id_auto', 'publicacion', 'modelo', 'Combustible', 'Color', 'precio_nuevo', 'modelo_std'], inplace=True)
 
         # Convert categorical variables into dummies
         categories_list = ["marca", "Motor", "Tipo", "Transmision"]
