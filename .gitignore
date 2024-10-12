@@ -1,0 +1,6 @@
+# Ignore airflow logs
+/airflow/logs/
+/airflow/logs/dag_processor_manager
+
+# Ignore pycache of airflow
+/airflow/dags/__pycache__
