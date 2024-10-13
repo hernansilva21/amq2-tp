@@ -152,11 +152,12 @@ def train_used_cars_model():
     def evaluate_champion_challenger():
         """
         Evaluates the champion and challenger models, and promotes the challenger if it performs better.
+        Logs comparison metrics to MLflow for visualization.
         """
         import awswrangler as wr
         import pandas as pd
         import numpy as np
-        from sklearn.metrics import mean_squared_error
+        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
         import mlflow
         from mlflow.tracking import MlflowClient
         import sys
@@ -185,10 +186,14 @@ def train_used_cars_model():
             # Evaluate the champion model
             y_pred_champion = champion_model.predict(X_test)
             mse_champion = mean_squared_error(y_test, y_pred_champion)
+            mae_champion = mean_absolute_error(y_test, y_pred_champion)
+            r2_champion = r2_score(y_test, y_pred_champion)
         except Exception:
             # No champion model exists
             print("No champion model found.")
             mse_champion = None
+            mae_champion = None
+            r2_champion = None
 
         # Load the challenger model
         challenger_model_info = client.get_model_version_by_alias(model_name, "challenger")
@@ -196,6 +201,8 @@ def train_used_cars_model():
         # Evaluate the challenger model
         y_pred_challenger = challenger_model.predict(X_test)
         mse_challenger = mean_squared_error(y_test, y_pred_challenger)
+        mae_challenger = mean_absolute_error(y_test, y_pred_challenger)
+        r2_challenger = r2_score(y_test, y_pred_challenger)
 
         print(f"Champion MSE: {mse_champion}")
         print(f"Challenger MSE: {mse_challenger}")
@@ -205,10 +212,25 @@ def train_used_cars_model():
         with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="Champion_Challenger_Evaluation") as run:
             if mse_champion is not None:
                 mlflow.log_metric("mse_champion", mse_champion)
+                mlflow.log_metric("mae_champion", mae_champion)
+                mlflow.log_metric("r2_champion", r2_champion)
             else:
                 mlflow.log_metric("mse_champion", sys.maxsize)
+                mlflow.log_metric("mae_champion", sys.maxsize)
+                mlflow.log_metric("r2_champion", 0.0)
             mlflow.log_metric("mse_challenger", mse_challenger)
+            mlflow.log_metric("mae_challenger", mae_challenger)
+            mlflow.log_metric("r2_challenger", r2_challenger)
 
+            # Log comparison metrics
+            comparison_metrics = {
+                "mse_difference": (mse_champion - mse_challenger) if mse_champion is not None else None,
+                "mae_difference": (mae_champion - mae_challenger) if mae_champion is not None else None,
+                "r2_difference": (r2_challenger - r2_champion) if r2_champion is not None else None,
+            }
+            mlflow.log_metrics(comparison_metrics)
+
+            # Log the decision
             if (mse_champion is None) or (mse_challenger < mse_champion):
                 # Challenger is better, promote it to champion
                 print("Challenger model performs better. Promoting to champion.")
@@ -219,13 +241,17 @@ def train_used_cars_model():
                 client.set_registered_model_alias(model_name, "champion", challenger_model_info.version)
                 # Remove 'challenger' alias
                 client.delete_registered_model_alias(model_name, "challenger")
-                mlflow.log_param("Model Promoted", "Challenger promoted to Champion")
+                mlflow.log_param("Model Decision", "Challenger promoted to Champion")
             else:
                 # Challenger is worse, keep the champion
                 print("Champion model performs better. Keeping the current champion.")
                 # Remove 'challenger' alias
                 client.delete_registered_model_alias(model_name, "challenger")
-                mlflow.log_param("Model Kept", "Champion remains")
+                mlflow.log_param("Model Decision", "Champion remains")
+
+            # Tag the run with model versions for traceability
+            mlflow.set_tag("champion_version", champion_model_info.version if mse_champion is not None else "None")
+            mlflow.set_tag("challenger_version", challenger_model_info.version)
 
     # Define the task flow
     train_the_challenger_model() >> evaluate_champion_challenger()
