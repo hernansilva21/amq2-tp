@@ -77,7 +77,7 @@ def check_model():
     global version_model
 
     try:
-        model_name = "heart_disease_model_prod"
+        model_name = "used_cars_model_prod"
         alias = "champion"
 
         mlflow.set_tracking_uri('http://mlflow:5000')
@@ -99,110 +99,45 @@ def check_model():
 
 class ModelInput(BaseModel):
     """
-    Input schema for the heart disease prediction model.
+    Input schema for the used cars prediction model.
 
-    This class defines the input fields required by the heart disease prediction model along with their descriptions
+    This class defines the input fields required by the used cars prediction model along with their descriptions
     and validation constraints.
 
-    :param age: Age of the patient (0 to 150).
-    :param sex: Sex of the patient. 1: male; 0: female.
-    :param cp: Chest pain type. 1: typical angina; 2: atypical angina; 3: non-anginal pain; 4: asymptomatic.
-    :param trestbps: Resting blood pressure in mm Hg on admission to the hospital (90 to 220).
-    :param chol: Serum cholestoral in mg/dl (110 to 600).
-    :param fbs: Fasting blood sugar. 1: >120 mg/dl; 0: <120 mg/dl.
-    :param restecg: Resting electrocardiographic results. 0: normal; 1: having ST-T wave abnormality; 2: showing
-                    probable or definite left ventricular hypertrophy.
-    :param thalach: Maximum heart rate achieved (beats per minute) (50 to 210).
-    :param exang: Exercise induced angina. 1: yes; 0: no.
-    :param oldpeak: ST depression induced by exercise relative to rest (0.0 to 7.0).
-    :param slope: The slope of the peak exercise ST segment. 1: upsloping; 2: flat; 3: downsloping.
-    :param ca: Number of major vessels colored by flourosopy (0 to 3).
-    :param thal: Thalassemia disease. 3: normal; 6: fixed defect; 7: reversable defect.
+    :param marca: car brand
+    :param Motor: engine displacement 
+    :param Ano: model year
+    :param Tipo: vehicle segment
+    :param Transmision: Vehicle transmission. .
     """
 
-    age: int = Field(
-        description="Age of the patient",
-        ge=0,
-        le=150,
+    marca: str = Field(
+        description="Car brand"
     )
-    sex: int = Field(
-        description="Sex of the patient. 1: male; 0: female",
-        ge=0,
-        le=1,
+    Motor: str = Field(
+        description="Engine displacement"
     )
-    cp: int = Field(
-        description="Chest pain type. 1: typical angina; 2: atypical angina, 3: non-anginal pain; 4: asymptomatic",
-        ge=1,
-        le=4,
+    Ano: int = Field(
+        description="Model year",
+        ge=1900,
+        le=2100,
     )
-    trestbps: float = Field(
-        description="Resting blood pressure in mm Hg on admission to the hospital",
-        ge=90,
-        le=220,
+    Tipo: str = Field(
+        description="Vehicle segment"
     )
-    chol: float = Field(
-        description="Serum cholestoral in mg/dl",
-        ge=110,
-        le=600,
-    )
-    fbs: int = Field(
-        description="Fasting blood sugar. 1: >120 mg/dl; 0: <120 mg/dl",
-        ge=0,
-        le=1,
-    )
-    restecg: int = Field(
-        description="Resting electrocardiographic results. 0: normal; 1:  having ST-T wave abnormality (T wave "
-                    "inversions and/or ST elevation or depression of > 0.05 mV), 2: showing probable or definite "
-                    "left ventricular hypertrophy by Estes' criteria",
-        ge=0,
-        le=2,
-    )
-    thalach: float = Field(
-        description="Maximum heart rate achieved (beats per minute)",
-        ge=50,
-        le=210,
-    )
-    exang: int = Field(
-        description="Exercise induced angina. 1: yes; 0: no",
-        ge=0,
-        le=1,
-    )
-    oldpeak: float = Field(
-        description="ST depression induced by exercise relative to rest",
-        ge=0.0,
-        le=7.0,
-    )
-    slope: int = Field(
-        description="The slope of the peak exercise ST segment .1: upsloping; 2: flat, 3: downsloping",
-        ge=1,
-        le=3,
-    )
-    ca: int = Field(
-        description="Number of major vessels colored by flourosopy",
-        ge=0,
-        le=3,
-    )
-    thal: Literal[3, 6, 7] = Field(
-        description="Thalassemia disease. 3: normal; 6: fixed defect; 7: reversable defect",
+    Transmision: str = Field(
+        description="Vehicle transmission"
     )
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "age": 67,
-                    "sex": 1,
-                    "cp": 4,
-                    "trestbps": 160.0,
-                    "chol": 286.0,
-                    "fbs": 0,
-                    "restecg": 2,
-                    "thalach": 108.0,
-                    "exang": 1,
-                    "oldpeak": 1.5,
-                    "slope": 2,
-                    "ca": 3,
-                    "thal": 3,
+                    "marca": "Nissan",
+                    "Motor": "1.4 Lt.",
+                    "Ano": 2022,
+                    "Tipo": "SUV",
+                    "Transmision": "manual", 
                 }
             ]
         }
@@ -211,28 +146,23 @@ class ModelInput(BaseModel):
 
 class ModelOutput(BaseModel):
     """
-    Output schema for the heart disease prediction model.
+    Output schema for the used cars prediction model.
 
-    This class defines the output fields returned by the heart disease prediction model along with their descriptions
+    This class defines the output fields returned by the used cars prediction model along with their descriptions
     and possible values.
 
-    :param int_output: Output of the model. True if the patient has a heart disease.
-    :param str_output: Output of the model in string form. Can be "Healthy patient" or "Heart disease detected".
+    :param int_output: Output of the model. Car price.
     """
 
-    int_output: bool = Field(
-        description="Output of the model. True if the patient has a heart disease",
-    )
-    str_output: Literal["Healthy patient", "Heart disease detected"] = Field(
-        description="Output of the model in string form",
+    int_output: int = Field(
+        description="Output of the model. Car price",
     )
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "int_output": True,
-                    "str_output": "Heart disease detected",
+                    "int_output": 10000
                 }
             ]
         }
@@ -240,7 +170,7 @@ class ModelOutput(BaseModel):
 
 
 # Load the model before start
-model, version_model, data_dict = load_model("heart_disease_model_prod", "champion")
+model, version_model, data_dict = load_model("used_cars_model_prod", "champion")
 
 app = FastAPI()
 
@@ -248,11 +178,11 @@ app = FastAPI()
 @app.get("/")
 async def read_root():
     """
-    Root endpoint of the Heart Disease Detector API.
+    Root endpoint of the Used Cars API.
 
     This endpoint returns a JSON response with a welcome message to indicate that the API is running.
     """
-    return JSONResponse(content=jsonable_encoder({"message": "Welcome to the Heart Disease Detector API"}))
+    return JSONResponse(content=jsonable_encoder({"message": "Welcome to the Used Cars Price API"}))
 
 
 @app.post("/predict/", response_model=ModelOutput)
@@ -264,10 +194,10 @@ def predict(
     background_tasks: BackgroundTasks
 ):
     """
-    Endpoint for predicting heart disease.
+    Endpoint for predicting used cars price.
 
-    This endpoint receives features related to a patient's health and predicts whether the patient has heart disease
-    or not using a trained model. It returns the prediction result in both integer and string formats.
+    This endpoint receives features related to a used car and predicts the car price
+    using a trained model. It returns the prediction result in integer format.
     """
 
     # Extract features from the request and convert them into a list and dictionary
@@ -297,13 +227,8 @@ def predict(
     # Make the prediction using the trained model
     prediction = model.predict(features_df)
 
-    # Convert prediction result into string format
-    str_pred = "Healthy patient"
-    if prediction[0] > 0:
-        str_pred = "Heart disease detected"
-
     # Check if the model has changed asynchronously
     background_tasks.add_task(check_model)
 
     # Return the prediction result
-    return ModelOutput(int_output=bool(prediction[0].item()), str_output=str_pred)
+    return ModelOutput(int_output=int(prediction[0].item()))
