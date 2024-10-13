@@ -160,7 +160,6 @@ def train_used_cars_model():
         from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
         import mlflow
         from mlflow.tracking import MlflowClient
-        import sys
 
         # Load test data
         X_test_path = "s3://data/final/test/used_cars_X_test.csv"
@@ -178,6 +177,12 @@ def train_used_cars_model():
         client = MlflowClient()
 
         model_name = "used_cars_model_prod"
+
+        # Initialize variables for champion metrics
+        champion_model_info = None
+        mse_champion = None
+        mae_champion = None
+        r2_champion = None
 
         try:
             # Try to load the champion model
@@ -209,33 +214,37 @@ def train_used_cars_model():
 
         # Start an MLflow run to log comparison metrics
         experiment = mlflow.set_experiment("Used Cars")
-        with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="Champion_Challenger_Evaluation") as run:
+        with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="Champion_Challenger_Evaluation"):
+            # Log metrics for the champion if it exists
             if mse_champion is not None:
                 mlflow.log_metric("mse_champion", mse_champion)
                 mlflow.log_metric("mae_champion", mae_champion)
                 mlflow.log_metric("r2_champion", r2_champion)
             else:
-                mlflow.log_metric("mse_champion", sys.maxsize)
-                mlflow.log_metric("mae_champion", sys.maxsize)
-                mlflow.log_metric("r2_champion", 0.0)
+                print("No champion model to log metrics for.")
+
+            # Log metrics for the challenger
             mlflow.log_metric("mse_challenger", mse_challenger)
             mlflow.log_metric("mae_challenger", mae_challenger)
             mlflow.log_metric("r2_challenger", r2_challenger)
 
-            # Log comparison metrics
-            comparison_metrics = {
-                "mse_difference": (mse_champion - mse_challenger) if mse_champion is not None else None,
-                "mae_difference": (mae_champion - mae_challenger) if mae_champion is not None else None,
-                "r2_difference": (r2_challenger - r2_champion) if r2_champion is not None else None,
-            }
-            mlflow.log_metrics(comparison_metrics)
+            # Log comparison metrics only if champion exists
+            if mse_champion is not None:
+                comparison_metrics = {
+                    "mse_difference": mse_champion - mse_challenger,
+                    "mae_difference": mae_champion - mae_challenger,
+                    "r2_difference": r2_challenger - r2_champion,
+                }
+                mlflow.log_metrics(comparison_metrics)
+            else:
+                print("No champion model to compare with.")
 
             # Log the decision
             if (mse_champion is None) or (mse_challenger < mse_champion):
                 # Challenger is better, promote it to champion
                 print("Challenger model performs better. Promoting to champion.")
                 # Demote the current champion if exists
-                if mse_champion is not None:
+                if champion_model_info is not None:
                     client.delete_registered_model_alias(model_name, "champion")
                 # Promote challenger to champion
                 client.set_registered_model_alias(model_name, "champion", challenger_model_info.version)
@@ -250,7 +259,10 @@ def train_used_cars_model():
                 mlflow.log_param("Model Decision", "Champion remains")
 
             # Tag the run with model versions for traceability
-            mlflow.set_tag("champion_version", champion_model_info.version if mse_champion is not None else "None")
+            if champion_model_info is not None:
+                mlflow.set_tag("champion_version", champion_model_info.version)
+            else:
+                mlflow.set_tag("champion_version", "None")
             mlflow.set_tag("challenger_version", challenger_model_info.version)
 
     # Define the task flow
