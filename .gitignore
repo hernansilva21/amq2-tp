@@ -1,6 +1,10 @@
 # Ignore airflow logs
 /airflow/logs/
 /airflow/logs/dag_processor_manager
+/airflow/logs/dag_processor_manager/dag_processor_manager.log
 
-# Ignore pycache of airflow
+# Ignore pycache
 /airflow/dags/__pycache__
+/dockerfiles/fastapi/__pycache__
+
+
