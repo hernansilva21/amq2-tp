@@ -17,29 +17,20 @@ from typing_extensions import Annotated
 def load_model(model_name: str, alias: str):
     """
     Load a trained model and associated data dictionary.
-
-    This function attempts to load a trained model specified by its name and alias. If the model is not found in the
-    MLflow registry, it loads the default model from a file. Additionally, it loads information about the ETL pipeline
-    from an S3 bucket. If the data dictionary is not found in the S3 bucket, it loads it from a local file.
-
-    :param model_name: The name of the model.
-    :param alias: The alias of the model version.
-    :return: A tuple containing the loaded model, its version, and the data dictionary.
     """
-
     try:
         # Load the trained model from MLflow
         mlflow.set_tracking_uri('http://mlflow:5000')
         client_mlflow = mlflow.MlflowClient()
 
         model_data_mlflow = client_mlflow.get_model_version_by_alias(model_name, alias)
-        model_ml = mlflow.sklearn.load_model(model_data_mlflow.source)
+        model_ml = mlflow.catboost.load_model(model_data_mlflow.source)
         version_model_ml = int(model_data_mlflow.version)
-    except:
+    except Exception as e:
+        print(f"Error loading model from MLflow: {e}")
         # If there is no registry in MLflow, open the default model
-        file_ml = open('/app/files/model.pkl', 'rb')
-        model_ml = pickle.load(file_ml)
-        file_ml.close()
+        with open('/app/files/model.pkl', 'rb') as file_ml:
+            model_ml = pickle.load(file_ml)
         version_model_ml = 0
 
     try:
@@ -53,11 +44,11 @@ def load_model(model_name: str, alias: str):
 
         data_dictionary["standard_scaler_mean"] = np.array(data_dictionary["standard_scaler_mean"])
         data_dictionary["standard_scaler_std"] = np.array(data_dictionary["standard_scaler_std"])
-    except:
+    except Exception as e:
+        print(f"Error loading data dictionary from S3: {e}")
         # If data dictionary is not found in S3, load it from local file
-        file_s3 = open('/app/files/data.json', 'r')
-        data_dictionary = json.load(file_s3)
-        file_s3.close()
+        with open('/app/files/data.json', 'r') as file_s3:
+            data_dictionary = json.load(file_s3)
 
     return model_ml, version_model_ml, data_dictionary
 
@@ -65,13 +56,7 @@ def load_model(model_name: str, alias: str):
 def check_model():
     """
     Check for updates in the model and update if necessary.
-
-    The function checks the model registry to see if the version of the champion model has changed. If the version
-    has changed, it updates the model and the data dictionary accordingly.
-
-    :return: None
     """
-
     global model
     global data_dict
     global version_model
@@ -92,7 +77,8 @@ def check_model():
             # Load the new model and update version and data dictionary
             model, version_model, data_dict = load_model(model_name, alias)
 
-    except:
+    except Exception as e:
+        print(f"Error checking for model updates: {e}")
         # If an error occurs during the process, pass silently
         pass
 
@@ -100,15 +86,6 @@ def check_model():
 class ModelInput(BaseModel):
     """
     Input schema for the used cars prediction model.
-
-    This class defines the input fields required by the used cars prediction model along with their descriptions
-    and validation constraints.
-
-    :param marca: car brand
-    :param Motor: engine displacement 
-    :param Ano: model year
-    :param Tipo: vehicle segment
-    :param Transmision: Vehicle transmission. .
     """
 
     marca: str = Field(
@@ -137,7 +114,7 @@ class ModelInput(BaseModel):
                     "Motor": "1.4 Lt.",
                     "Ano": 2022,
                     "Tipo": "SUV",
-                    "Transmision": "manual", 
+                    "Transmision": "manual",
                 }
             ]
         }
@@ -147,11 +124,6 @@ class ModelInput(BaseModel):
 class ModelOutput(BaseModel):
     """
     Output schema for the used cars prediction model.
-
-    This class defines the output fields returned by the used cars prediction model along with their descriptions
-    and possible values.
-
-    :param int_output: Output of the model. Car price.
     """
 
     int_output: int = Field(
@@ -179,8 +151,6 @@ app = FastAPI()
 async def read_root():
     """
     Root endpoint of the Used Cars API.
-
-    This endpoint returns a JSON response with a welcome message to indicate that the API is running.
     """
     return JSONResponse(content=jsonable_encoder({"message": "Welcome to the Used Cars Price API"}))
 
@@ -195,34 +165,34 @@ def predict(
 ):
     """
     Endpoint for predicting used cars price.
-
-    This endpoint receives features related to a used car and predicts the car price
-    using a trained model. It returns the prediction result in integer format.
     """
-
     # Extract features from the request and convert them into a list and dictionary
-    features_list = [*features.dict().values()]
-    features_key = [*features.dict().keys()]
+    features_dict = features.dict()
+    features_df = pd.DataFrame([features_dict])
 
-    # Convert features into a pandas DataFrame
-    features_df = pd.DataFrame(np.array(features_list).reshape([1, -1]), columns=features_key)
+    # Preprocess the features
+    # Ensure the data types are correct
+    features_df['Ano'] = features_df['Ano'].astype(int)
 
+    # If you used dummy variables and scaling during training, apply the same transformations
     # Process categorical features
     for categorical_col in data_dict["categorical_columns"]:
-        features_df[categorical_col] = features_df[categorical_col].astype(int)
+        # Map categorical variables to categories used during training
         categories = data_dict["categories_values_per_categorical"][categorical_col]
         features_df[categorical_col] = pd.Categorical(features_df[categorical_col], categories=categories)
 
     # Convert categorical features into dummy variables
-    features_df = pd.get_dummies(data=features_df,
-                                 columns=data_dict["categorical_columns"],
-                                 drop_first=True)
+    features_df = pd.get_dummies(
+        data=features_df,
+        columns=data_dict["categorical_columns"],
+        drop_first=True
+    )
 
-    # Reorder DataFrame columns
-    features_df = features_df[data_dict["columns_after_dummy"]]
+    # Reorder DataFrame columns to match the model's expected input
+    features_df = features_df.reindex(columns=data_dict["columns_after_dummy"], fill_value=0)
 
-    # Scale the data using standard scaler
-    features_df = (features_df-data_dict["standard_scaler_mean"])/data_dict["standard_scaler_std"]
+    # Scale the data using standard scaler if it was used during training
+    features_df = (features_df - data_dict["standard_scaler_mean"]) / data_dict["standard_scaler_std"]
 
     # Make the prediction using the trained model
     prediction = model.predict(features_df)
@@ -231,4 +201,4 @@ def predict(
     background_tasks.add_task(check_model)
 
     # Return the prediction result
-    return ModelOutput(int_output=int(prediction[0].item()))
+    return ModelOutput(int_output=int(prediction[0]))
