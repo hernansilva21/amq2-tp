@@ -2,6 +2,7 @@ import json
 import pickle
 import boto3
 import mlflow
+import traceback
 
 import numpy as np
 import pandas as pd
@@ -23,14 +24,23 @@ def load_model(model_name: str, alias: str):
         mlflow.set_tracking_uri('http://mlflow:5000')
         client_mlflow = mlflow.MlflowClient()
 
+        print("27")
         model_data_mlflow = client_mlflow.get_model_version_by_alias(model_name, alias)
+        print("exito")
+        print("30")
         model_ml = mlflow.catboost.load_model(model_data_mlflow.source)
+        print("exito")
+        print("33")
         version_model_ml = int(model_data_mlflow.version)
+        print("exito")
     except Exception as e:
-        print(f"Error loading model from MLflow: {e}")
+        print("excepcion")
+        traceback.print_exc() 
         # If there is no registry in MLflow, open the default model
         with open('/app/files/model.pkl', 'rb') as file_ml:
+            print("load pickle local")
             model_ml = pickle.load(file_ml)
+            print("exito")
         version_model_ml = 0
 
     try:
@@ -142,6 +152,7 @@ class ModelOutput(BaseModel):
 
 
 # Load the model before start
+print("Cargar modelo")
 model, version_model, data_dict = load_model("used_cars_model_prod", "champion")
 
 app = FastAPI()
