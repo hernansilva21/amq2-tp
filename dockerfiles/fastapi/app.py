@@ -26,23 +26,15 @@ def load_model(model_name: str, alias: str):
         mlflow.set_tracking_uri('http://mlflow:5000')
         client_mlflow = mlflow.MlflowClient()
 
-        print("27")
         model_data_mlflow = client_mlflow.get_model_version_by_alias(model_name, alias)
-        print("exito")
-        print("30")
         model_ml = mlflow.catboost.load_model(model_data_mlflow.source)
-        print("exito")
-        print("33")
         version_model_ml = int(model_data_mlflow.version)
-        print("exito")
     except Exception as e:
-        print("excepcion")
         traceback.print_exc() 
         # If there is no registry in MLflow, open the default model
         with open('/app/files/model.pkl', 'rb') as file_ml:
             print("load pickle local")
             model_ml = pickle.load(file_ml)
-            print("exito")
         version_model_ml = 0
 
     try:
@@ -154,7 +146,6 @@ class ModelOutput(BaseModel):
 
 
 # Load the model before start
-print("Cargar modelo")
 model, version_model, data_dict = load_model("used_cars_model_prod", "champion")
 
 app = FastAPI()
@@ -249,4 +240,40 @@ def get_marcas():
         return JSONResponse(
             status_code=500,
             content={"message": "Error retrieving car brands from data dictionary."}
+        )
+
+from typing import List
+
+class TiposOutput(BaseModel):
+    """
+    Output schema for the list of vehicle types.
+    """
+    tipos: List[str] = Field(
+        description="List of available vehicle types",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "tipos": ["SUV", "Sedan", "Camioneta"]
+                }
+            ]
+        }
+    }
+
+@app.get("/tipos/", response_model=TiposOutput)
+def get_tipos():
+    """
+    Endpoint to get the list of available vehicle types.
+    """
+    try:
+        # Extract the list of vehicle types from the data dictionary
+        tipos = data_dict["categories_values_per_categorical"]["Tipo"]
+        return TiposOutput(tipos=tipos)
+    except KeyError:
+        # Handle the case where 'Tipo' is not in the data dictionary
+        return JSONResponse(
+            status_code=500,
+            content={"message": "Error retrieving vehicle types from data dictionary."}
         )
