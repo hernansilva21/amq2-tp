@@ -13,6 +13,8 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+from typing import List
+
 
 
 def load_model(model_name: str, alias: str):
@@ -213,3 +215,38 @@ def predict(
 
     # Return the prediction result
     return ModelOutput(int_output=int(prediction[0]))
+
+
+class MarcasOutput(BaseModel):
+    """
+    Output schema for the list of car brands.
+    """
+    marcas: List[str] = Field(
+        description="List of available car brands",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "marcas": ["Nissan", "Toyota", "Honda"]
+                }
+            ]
+        }
+    }
+
+@app.get("/marcas/", response_model=MarcasOutput)
+def get_marcas():
+    """
+    Endpoint to get the list of available car brands.
+    """
+    try:
+        # Extract the list of car brands from the data dictionary
+        marcas = data_dict["categories_values_per_categorical"]["marca"]
+        return MarcasOutput(marcas=marcas)
+    except KeyError:
+        # Handle the case where 'marca' is not in the data dictionary
+        return JSONResponse(
+            status_code=500,
+            content={"message": "Error retrieving car brands from data dictionary."}
+        )
