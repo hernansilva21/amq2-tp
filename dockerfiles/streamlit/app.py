@@ -5,10 +5,10 @@ import requests
 st.title("Predicción de Precios de Autos Usados")
 
 # Campos de entrada
-marca = st.text_input("Marca del auto", "")
-motor = st.text_input("Motor (ejemplo: '1.4 Lt.')", "")
+marca = st.text_input("Marca del auto", "Nissan")
+motor = st.text_input("Tipo de motor", "1.4")
 ano = st.number_input("Año del auto", min_value=1900, max_value=2100, step=1, value=2020)
-tipo = st.text_input("Tipo de vehículo (ejemplo: 'SUV')", "")
+tipo = st.text_input("Tipo de vehículo", "SUV")
 transmision = st.selectbox("Transmisión", ["manual", "automática"])
 
 # Botón de predicción
@@ -27,6 +27,6 @@ if st.button("Predecir"):
 
     if response.status_code == 200:
         resultado = response.json()
-        st.success(f"El precio estimado es: {resultado['int_output']}")
+        st.success(f"El precio estimado es: {resultado['int_output']} bolivianos")
     else:
         st.error("Error en la predicción")
