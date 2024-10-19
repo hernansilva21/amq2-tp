@@ -1,28 +1,32 @@
 import streamlit as st
 import requests
 
-# app title
+# Título de la aplicación
 st.title("Predicción de Precios de Autos Usados")
 
-# input fields
-modelo = st.text_input("Modelo del auto", "")
-año = st.number_input("Año del auto", min_value=1900, max_value=2100, step=1, value=2020)
-kilometraje = st.number_input("Kilometraje (en km)", min_value=0, step=1000, value=50000)
+# Campos de entrada
+marca = st.text_input("Marca del auto", "")
+motor = st.text_input("Motor (ejemplo: '1.4 Lt.')", "")
+ano = st.number_input("Año del auto", min_value=1900, max_value=2100, step=1, value=2020)
+tipo = st.text_input("Tipo de vehículo (ejemplo: 'SUV')", "")
+transmision = st.selectbox("Transmisión", ["manual", "automática"])
 
-# Predict button
+# Botón de predicción
 if st.button("Predecir"):
     payload = {
-        "modelo": modelo,
-        "año": año,
-        "kilometraje": kilometraje,
+        "marca": marca,
+        "Motor": motor,
+        "Ano": ano,
+        "Tipo": tipo,
+        "Transmision": transmision,
     }
 
-    # Making the request
-    url = 'http://fastapi:8000/predict'  # Aquí usamos el nombre del contenedor para llamar a FastAPI
-    response = requests.post(url, json=payload)
+    # Realizar la solicitud
+    url = 'http://fastapi:8800/predict/'  # Asegúrate de que la URL sea correcta
+    response = requests.post(url, json={"features": payload})
 
     if response.status_code == 200:
         resultado = response.json()
-        st.success(f"El precio estimado es: {resultado['precio']}")
+        st.success(f"El precio estimado es: {resultado['int_output']}")
     else:
         st.error("Error en la predicción")

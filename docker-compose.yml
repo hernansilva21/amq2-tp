@@ -272,7 +272,7 @@ services:
   fastapi:
     restart: always
     build: "./dockerfiles/fastapi"
-    image: backend_fastapi
+    image: fastapi
     container_name: fastapi
     profiles:
       - all
@@ -309,6 +309,9 @@ services:
       - "8501:8501"
     depends_on:
       - fastapi 
+    networks:
+     - frontend
+     - backend
 
 networks:
   frontend:
