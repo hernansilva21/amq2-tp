@@ -1,5 +1,9 @@
 # TP Final de Aprendizaje de Maquina II - CEIA - FIUBA
 
+#### Integrantes del grupo
+ - Hernán Silva
+ - Lucas Musciano
+
 ## Descripción
 Este proyecto es la entrega final de la asignatura de Aprendizaje de Máquinas 2 del curso de posgrado de CEIA de la Facultad de Ingenieria de la Universidad de Buenos Aires.
 Su objetivo es construir y desplegar un modelo de aprendizaje automático para predecir el precio de autos usados en Bolivia. El proyecto consiste en la integración de diversas herramientas de MLOps para gestionar el ciclo de vida completo del modelo, desde el entrenamiento hasta el despliegue.
