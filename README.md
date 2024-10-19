@@ -79,3 +79,16 @@ docker compose --profile all up
 Una vez levantados los servicios, es necesario entrar a airflow para activar los dos DAGs (es necesario que el proceso ETL se ejecute al menos uan vez antes de ejecutar el DAG de entrenamiento).
 
 Luego se puede o bien consumir la API directamente (puede encontrar documentación de parámetros necesarios en el endpoint /docs de la misma) o bien ingresar a la aplicación web de Streamlit, con modalidad de formulario.
+
+## Información adicional
+
+### Propósito original del modelo
+En Bolivia, la valoración de autos usados presenta un desafío considerable debido a la falta de datos estructurados y confiables. Actualmente, los vendedores y compradores de vehículos dependen en gran medida de plataformas como Facebook Marketplace para estimar el valor de un automóvil. Alternativamente, recurren a comparar su vehículo con otros autos en venta del mismo modelo, lo que introduce un alto grado de subjetividad e inexactitud en el proceso.
+
+Esta problemática resalta la necesidad de un enfoque más sistemático y preciso para determinar el valor de los autos usados. La motivación detrás de este trabajo radica en la posibilidad de proporcionar una herramienta que no solo facilite una valoración más precisa, sino que también permita una mejor comprensión del mercado automotriz boliviano. Al desarrollar un modelo de machine learning que pueda predecir los precios de los vehículos con mayor exactitud, no solo se optimiza la toma de decisiones para vendedores y compradores, sino que también se abre una ventana para analizar tendencias y comportamientos en el mercado de autos usados en Bolivia.
+
+### Fuentes de datos
+Para el presente trabajo se utilizó el dataset del [portal Autopia](https://www.autopia.com.bo) dedicado a la compra venta de autos usados en el mercado boliviano.
+
+Un factor importante a destacar, es que se duplicaron el 10% de los registros en el extremo más alto, y un 5% en el extremo más bajo, esto porque el modelo era muy impreciso para predecir valores muy altos y muy bajos.
+En el dataset usado finalmente, se incluyen estos datos duplicados, obviamente la fuente de datos original no incluía los duplicados mencionados.
